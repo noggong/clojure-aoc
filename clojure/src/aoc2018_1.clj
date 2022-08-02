@@ -5,11 +5,9 @@
 ;; 예) +10 -2 -5 +1 이 입력일 경우 4를 출력
 
 (defn sum [numbers]
-  (reduce + (map parse-int (re-seq #"[^\s]+" numbers)))
-  )
-(defn parse-int [s] (Integer/parseInt s))
-(sum "+7 -2 -5 +1")
+  (reduce + (map #(Integer/parseInt %) (re-seq #"[^\s]+" numbers))))
 
+(sum "+7 -2 -5 +1")
 
 
 ;; 파트 2
