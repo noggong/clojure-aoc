@@ -1,4 +1,6 @@
 (ns aoc2018-2)
+(use 'clojure.data)
+(use '[clojure.string :all :refer])
 
 ;; 파트 1
 ;; 주어진 각각의 문자열에서, 같은 문자가 두번 혹은 세번씩 나타난다면 각각을 한번씩 센다.
@@ -54,7 +56,7 @@
 
 
 (comment
-  (multiply-twice-three-times `("abcdef", "bababc", "abbcde", "abcccd", "aabcdd", "abcdee", "ababab"))
+  (multiply-twice-three-times `("abcdef" "bababc" "abbcde" "abcccd" "aabcdd" "abcdee" "ababab"))
   ; ("abcdef", "bababc", "abbcde", "abcccd", "aabcdd", "abcdee", "ababab")
   ; 1. ({a: 0, b: 0, c: 0} {a: 1, b: 2, c: 3}...)
   ; 2. ([0, 0] [1, 1]...)
@@ -82,9 +84,42 @@
 ;; axcye
 ;; wvxyz
 
+
+
+
 ;; 주어진 예시에서 fguij와 fghij는 같은 위치 (2번째 인덱스)에 정확히 한 문자 (u와 h)가 다름. 따라서 같은 부분인 fgij를 리턴하면 됨.
 
+(defn string->list [string]
+  (into [] (char-array string)))
 
-;; #################################
-;; ###        Refactoring        ###
-;; #################################
+(defn check-correct-pare [target id]
+  (diff target id))
+
+(defn compare-ids [target ids]
+   (let [targetArr (string->list target)]
+     (let [diff (map #(check-correct-pare targetArr (string->list %)) ids)]
+       (->> diff
+            (map #(remove nil? (nth % 2)))))
+     ))
+
+(defn is-not-last-element [strings]
+  (> (count (rest strings)) 0))
+
+(defn search-pair-id [strings]
+  (let [diff (compare-ids (first strings) (rest strings))]
+    (let [rst (
+                ->> diff
+                   (remove empty?)
+                   (filter #(= (count %) 4))
+                   first
+                   join)]
+      (if (blank? rst)
+        (if (is-not-last-element strings)
+          (search-pair-id (rest strings))
+          nil)
+        rst)
+      )
+  ))
+
+(comment
+  (search-pair-id `("abcde" "fghij" "klmno" "pqrst" "fguij" "axcye" "wvxyz")))
