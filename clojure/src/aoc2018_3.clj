@@ -1,4 +1,6 @@
-(ns aoc2018_3)
+(ns aoc2018_3
+  (:require [clojure.data :as data]
+            [clojure.set]))
 
 
 ;; 파트 1
@@ -96,7 +98,7 @@
    })
 
 
-(defn footprints-coordinates
+(defn footprint-coordinates
   "시작좌표와 크기 좌표를 가지고 거쳐가는 모든 좌표를 가져온다
 
   Arguments
@@ -145,12 +147,109 @@
   [strings]
   (->> strings
        (map parse-coordinate-info)
-       (map #(footprints-coordinates (% :starting-coordinate)
+       (map #(footprint-coordinates (% :starting-coordinate)
                                      (% :size)))
        (apply concat)
        frequencies
        (filter (fn [[k v]] (> v 1)))
-       count
+       count))
+
+(comment
+  (expose-id "#1 @ 1,3: 4x4")
+  (expose-start-coordinate "#1 @ 1,3: 4x4")
+  (expose-size "#1 @ 1,3: 4x4")
+  (expose-as-vector-by-regex "#1 @ 1,3: 4x4" #":\s(([0-9]+)x([0-9]+))")
+  (parse-coordinate-info "#1 @ 1,3: 4x4")
+  (leave-coordinates-by-size 1 4 3 7)
+  (footprint-coordinates [1 3] [4 4])
+  (overlapped-count `("#1 @ 1,3: 4x4" "#2 @ 3,1: 4x4" "#3 @ 5,5: 2x2")))
+
+;; 파트 2
+;; 입력대로 모든 격자를 채우고 나면, 정확히 한 ID에 해당하는 영역이 다른 어떤 영역과도 겹치지 않음
+;; 위의 예시에서는 ID 3 이 ID 1, 2와 겹치지 않음. 3을 출력.
+;; 겹치지 않는 영역을 가진 ID를 출력하시오. (문제에서 답이 하나만 나옴을 보장함)
+
+
+(defn footprint-coordinates-as-hashmap [rect-information]
+  "사각형의 id 별로 사각형이 포함된 좌표를 반환한다.
+
+  Arguments
+  - (hashmap) {:id (string) :starting-coordinate ([int] :size ([int]}
+
+  Return
+  - (hash-map) {:id (string) :coordinates ((string) vector)} 아이디와 좌표목록을 갖는 hash-map
+  "
+  (let [{id :id
+         starting-coordinate :starting-coordinate
+         size :size
+         } rect-information]
+    {:id id :coordinates (footprint-coordinates starting-coordinate size)}))
+
+
+(defn compare-far-off
+  "대상 사각형이 다른 사각형들과 겹치는 부분이 있는지 확인
+
+  Arguments
+  - coordinates ((string) vector) 대상 사각형이 가지고 있는 좌표들
+  - rects 비교할 사각형들의 정보
+
+  Returns
+  - (Boolean)
+  "
+  [coordinates, rects]
+  (let [intersections (filter (fn [rect]
+                                (let [intersection (clojure.set/intersection (set (rect :coordinates)) (set coordinates))]
+                                  (->> intersection
+                                       empty?
+                                       not))
+                                ) rects)]
+    (empty? intersections)))
+
+(defn remove-idx [i items]
+  "list 에서 특정 인덱스에 해당하는 항목을 삭제한 list 를 반환
+
+  Argument
+  - i (int) 삭제할 인덱스
+  - items ((any) list) 대상 리스트
+
+  Return
+  - ((any list) 대상 인덱스를 삭제한 결과의 list
+  "
+  (keep-indexed #(when-not (= i %1) %2) items))
+
+(defn search-rect-far-off
+  "겹치는 부분이 없는 사각형의 id 를 가져오는 반환
+
+  Arguments
+  - rect-coordinates ((hash-map) list) 사각형들 정보
+
+  Returns
+  - (string) 사각형 id
+  "
+  [rect-coordinates]
+  (loop [index 0
+         {target-id :id
+          target-coordinates :coordinates} (nth rect-coordinates index)]
+    (let [far-off? (compare-far-off target-coordinates (remove-idx index rect-coordinates))
+          index (inc index)]
+      (if far-off?
+        target-id
+        (recur index (nth rect-coordinates index))))))
+
+(defn rect-far-off
+  "좌표에서 사각형이 다른것과 겹치지 않는 사각형의 아이디 가져오기
+
+  Arguments
+  - strings ((string)[list])
+
+  Return
+  - (int) 중첩된 좌표의 수
+  "
+  [strings]
+  (->> strings
+       (map parse-coordinate-info)
+       (map footprint-coordinates-as-hashmap)
+       search-rect-far-off
        ))
 
 (comment
@@ -160,11 +259,14 @@
   (expose-as-vector-by-regex "#1 @ 1,3: 4x4" #":\s(([0-9]+)x([0-9]+))")
   (parse-coordinate-info "#1 @ 1,3: 4x4")
   (leave-coordinates-by-size 1 4 3 7)
-  (footprints-coordinates [1 3] [4 4])
-  (overlapped-count `("#1 @ 1,3: 4x4" "#2 @ 3,1: 4x4" "#3 @ 5,5: 2x2"))
-  )
+  (footprint-coordinates [1 3] [4 4])
+  (footprint-coordinates-as-hashmap {:id "1", :starting-coordinate [1 3], :size [4 4]})
+  (compare-far-off ["5x5" "6x5" "7x5" "8x5" "5x6" "6x6" "7x6" "8x6" "5x7" "6x7" "7x7" "8x7" "5x8" "6x8" "7x8" "8x8"]
+                   `({:id 2 :coordinates ["3x1" "4x1" "5x1" "6x1" "3x2" "4x2" "5x2" "6x2" "3x3" "4x3" "5x3" "6x3" "3x4" "4x4" "5x4" "6x4"]}
+                     {:id 3 :coordinates ["1x3" "2x3" "3x3" "4x3" "1x4" "2x4" "3x4" "4x4" "1x5" "2x5" "3x5" "4x5" "1x6" "2x6" "3x6" "4x6"] }))
 
-;; 파트 2
-;; 입력대로 모든 격자를 채우고 나면, 정확히 한 ID에 해당하는 영역이 다른 어떤 영역과도 겹치지 않음
-;; 위의 예시에서는 ID 3 이 ID 1, 2와 겹치지 않음. 3을 출력.
-;; 겹치지 않는 영역을 가진 ID를 출력하시오. (문제에서 답이 하나만 나옴을 보장함)
+  (compare-far-off ["1x3" "2x3" "3x3" "4x3" "1x4" "2x4" "3x4" "4x4" "1x5" "2x5" "3x5" "4x5" "1x6" "2x6" "3x6" "4x6"]
+                   `({:id 2 :coordinates ["3x1" "4x1" "5x1" "6x1" "3x2" "4x2" "5x2" "6x2" "3x3" "4x3" "5x3" "6x3" "3x4" "4x4" "5x4" "6x4"]}
+                     {:id 3 :coordinates ["5x5" "6x5" "7x5" "8x5" "5x6" "6x6" "7x6" "8x6" "5x7" "6x7" "7x7" "8x7" "5x8" "6x8" "7x8" "8x8"] }))
+
+  (rect-far-off `("#1 @ 1,3: 4x4" "#2 @ 3,1: 4x4" "#3 @ 5,5: 2x2")))
