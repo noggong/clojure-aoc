@@ -1,6 +1,5 @@
 (ns aoc2018_3
-  (:require [clojure.data :as data]
-            [clojure.set]))
+  (:require [clojure.set]))
 
 
 ;; 파트 1
@@ -25,114 +24,48 @@
 ;; 여기서 XX는 ID 1, 2, 3의 영역이 두번 이상 겹치는 지역.
 ;; 겹치는 지역의 갯수를 출력하시오. (위의 예시에서는 4)
 
-
-(defn expose-id
-  "문자열에서 아이디를 추출한다.
-
-  Arguments
-  - string (string) 대상 문자열
-
-  Return
-  - (string) id 문자열
-  "
-  [string]
-  (->> string
-       (re-find #"#([0-9^]+)\s")
-       last))
-
-(defn expose-as-vector-by-regex
-  "정규표현식을 통해 vector 형태의 좌표를 반환한다.
-
-  Arguments
-  - string (string) 대상 문자열
-
-  Return
-  - ((Int) vector) [int int] vector
-  "
-  [string, regex]
-  (let [exposed-string (re-find regex  string)
-        starting-coordinate (subvec exposed-string 2)]
-    (->> starting-coordinate
-         (map #(Integer/parseInt %))
-         vec))
-
-  )
-
-(defn expose-start-coordinate
-  "문자열에서 시작좌표를 가져온다
-
-  Arguments
-  - string (string) 대상 문자열
-
-  Return
-  - ((Int) vector) 시작 좌표 vector
-  "
-  [string]
-  (expose-as-vector-by-regex string #"@\s(([0-9]+),([0-9]+)):"))
-
-(defn expose-size
-  "좌표의 사이즈 공간을 추출한다
-
-  Arguments
-  - string (string) 대상 문자열
-
-  Return
-  - ((Int) vector) 사이즈 [width height] vector
-  "
-  [string]
-  (expose-as-vector-by-regex string #":\s(([0-9]+)x([0-9]+))"))
-
-(defn parse-coordinate-info
-  "문자열에서 아이디, 시작좌표, 격자로 파싱하여 리턴
-
-  Arguments
-  - string (string) 문자열  ex) #1 @ 1,3: 4x4
-
-  Return
-  - (Hash-map) {:id string, :starting-coordinate [x좌표 y좌표], :size [width height]}
-  "
-  [string]
-  {:id (expose-id string)
-   :starting-coordinate (expose-start-coordinate string)
-   :size (expose-start-coordinate string)
-   })
-
-(defn leave-coordinates-by-size
+(defn square-info->coordinates
   "시작 부터 끝좌표 까지 거져가는 모든 좌표들 남기기
 
   Arguments
   - start-x (int) x 시작 좌표
   - end-x (int) x 종료 좌표
   - start-y (int) y 시작 좌표
-  - end-x (int) y 종료 좌표
+  - end-y (int) y 종료 좌표
 
   Return
   [(string) vector] [str 'x좌표' 'x' 'Y좌표']"
-  [start-x end-x start-y end-y]
-  (loop [n 0
-         i start-x
-         j start-y
-         footprint []]
-    (cond (== j end-y) footprint
-          (== i end-x) (recur n start-x (inc j) (conj footprint (str i "x" j)))
-          :else (recur (inc n) (inc i) j (conj footprint (str i "x" j))))))
+  [{:keys [start-x start-y end-x end-y]}]
+  (for [x (range start-x end-x)
+        y (range start-y end-y)]
+    {:x x :y y}))
 
+(defn input->square-info
+  "입렵박은 문자열을 사각형의 좌표 정보로 변경한다."
+  [string]
+  (let [matched-info (re-find #"#(\d+) @ (\d+),(\d+): (\d+)x(\d+)" string)
+        square-info-string (subvec matched-info 2)
+        square-info-int (map #(Integer. %) square-info-string)
+        [start-x start-y width height] square-info-int]
+    {:start-x start-x
+     :start-y start-y
+     :end-x (+ start-x width)
+     :end-y (+ start-y height)}))
 
-(defn footprint-coordinates
-  "시작좌표와 크기 좌표를 가지고 거쳐가는 모든 좌표를 가져온다
+(defn input->coordinates
+  "입력받은 문자열을 사각형들이 가지고 있는 좌표값으로 변경한다."
+  [input]
+  (->> input
+       (map input->square-info)
+       (map square-info->coordinates)))
 
-  Arguments
-  - start-coordinate [(int)] 시작좌표
-  - size [(int)] 사각형 크기
-
-  Return
-  - [(string)] (str 'x좌표' 'x' 'Y좌표')
-  "
-  [start-coordinate size]
-  (leave-coordinates-by-size (first start-coordinate)
-                             (dec (+ (first start-coordinate) (first size)))
-                             (last start-coordinate)
-                             (+ (last start-coordinate) (last size))))
+(defn filter-overlapped-coordinates
+  "사각형의 겹치는 (중첩된 좌표) 만 걸러내기"
+  [coordinates]
+  (->> coordinates
+       (apply concat)
+       frequencies
+       (filter (fn [[k v]] (> v 1)))))
 
 (defn overlapped-count
   "문자열에서 좌표에 아이디를 할당해 아이디가 중첩된 좌표의 갯수를 반환
@@ -143,24 +76,14 @@
   Return
   - (int) 중첩된 좌표의 수
   "
-  [strings]
-  (->> strings
-       (map parse-coordinate-info)
-       (map #(footprint-coordinates (% :starting-coordinate)
-                                     (% :size)))
-       (apply concat)
-       frequencies
-       (filter (fn [[k v]] (> v 1)))
-       count))
+  [input]
+  (->> input
+       input->coordinates
+       filter-overlapped-coordinates
+       count
+       ))
 
 (comment
-  (expose-id "#1 @ 1,3: 4x4")
-  (expose-start-coordinate "#1 @ 1,3: 4x4")
-  (expose-size "#1 @ 1,3: 4x4")
-  (expose-as-vector-by-regex "#1 @ 1,3: 4x4" #":\s(([0-9]+)x([0-9]+))")
-  (parse-coordinate-info "#1 @ 1,3: 4x4")
-  (leave-coordinates-by-size 1 4 3 7)
-  (footprint-coordinates [1 3] [4 4])
   (overlapped-count `("#1 @ 1,3: 4x4" "#2 @ 3,1: 4x4" "#3 @ 5,5: 2x2")))
 
 ;; 파트 2
@@ -252,24 +175,8 @@
   (->> strings
        (map parse-coordinate-info)
        (map footprint-coordinates-as-hashmap)
-       not-overlapped
+
        ))
 
 (comment
-  (expose-id "#1 @ 1,3: 4x4")
-  (expose-start-coordinate "#1 @ 1,3: 4x4")
-  (expose-size "#1 @ 1,3: 4x4")
-  (expose-as-vector-by-regex "#1 @ 1,3: 4x4" #":\s(([0-9]+)x([0-9]+))")
-  (parse-coordinate-info "#1 @ 1,3: 4x4")
-  (leave-coordinates-by-size 1 4 3 7)
-  (footprint-coordinates [1 3] [4 4])
-  (footprint-coordinates-as-hashmap {:id "1", :starting-coordinate [1 3], :size [4 4]})
-  (compare-far-off ["5x5" "6x5" "7x5" "8x5" "5x6" "6x6" "7x6" "8x6" "5x7" "6x7" "7x7" "8x7" "5x8" "6x8" "7x8" "8x8"]
-                   `({:id 2 :coordinates ["3x1" "4x1" "5x1" "6x1" "3x2" "4x2" "5x2" "6x2" "3x3" "4x3" "5x3" "6x3" "3x4" "4x4" "5x4" "6x4"]}
-                     {:id 3 :coordinates ["1x3" "2x3" "3x3" "4x3" "1x4" "2x4" "3x4" "4x4" "1x5" "2x5" "3x5" "4x5" "1x6" "2x6" "3x6" "4x6"] }))
-
-  (compare-far-off ["1x3" "2x3" "3x3" "4x3" "1x4" "2x4" "3x4" "4x4" "1x5" "2x5" "3x5" "4x5" "1x6" "2x6" "3x6" "4x6"]
-                   `({:id 2 :coordinates ["3x1" "4x1" "5x1" "6x1" "3x2" "4x2" "5x2" "6x2" "3x3" "4x3" "5x3" "6x3" "3x4" "4x4" "5x4" "6x4"]}
-                     {:id 3 :coordinates ["5x5" "6x5" "7x5" "8x5" "5x6" "6x6" "7x6" "8x6" "5x7" "6x7" "7x7" "8x7" "5x8" "6x8" "7x8" "8x8"] }))
-
   (rect-far-off `("#1 @ 1,3: 4x4" "#2 @ 3,1: 4x4" "#3 @ 5,5: 2x2")))
