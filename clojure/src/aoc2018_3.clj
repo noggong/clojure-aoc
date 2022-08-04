@@ -40,6 +40,24 @@
        (re-find #"#([0-9^]+)\s")
        last))
 
+(defn expose-as-vector-by-regex
+  "정규표현식을 통해 vector 형태의 좌표를 반환한다.
+
+  Arguments
+  - string (string) 대상 문자열
+
+  Return
+  - ((Int) vector) [int int] vector
+  "
+  [string, regex]
+  (let [exposed-string (re-find regex  string)
+        starting-coordinate (subvec exposed-string 2)]
+    (->> starting-coordinate
+         (map #(Integer/parseInt %))
+         vec))
+
+  )
+
 (defn expose-start-coordinate
   "문자열에서 시작좌표를 가져온다
 
@@ -64,24 +82,6 @@
   [string]
   (expose-as-vector-by-regex string #":\s(([0-9]+)x([0-9]+))"))
 
-(defn expose-as-vector-by-regex
-  "정규표현식을 통해 vector 형태의 좌표를 반환한다.
-
-  Arguments
-  - string (string) 대상 문자열
-
-  Return
-  - ((Int) vector) [int int] vector
-  "
-  [string, regex]
-  (let [exposed-string (re-find regex  string)
-        starting-coordinate (subvec exposed-string 2)]
-    (->> starting-coordinate
-         (map #(Integer/parseInt %))
-         vec))
-
-  )
-
 (defn parse-coordinate-info
   "문자열에서 아이디, 시작좌표, 격자로 파싱하여 리턴
 
@@ -94,26 +94,8 @@
   [string]
   {:id (expose-id string)
    :starting-coordinate (expose-start-coordinate string)
-   :size (expose-start-coordinate size)
+   :size (expose-start-coordinate string)
    })
-
-
-(defn footprint-coordinates
-  "시작좌표와 크기 좌표를 가지고 거쳐가는 모든 좌표를 가져온다
-
-  Arguments
-  - start-coordinate [(int)] 시작좌표
-  - size [(int)] 사각형 크기
-
-  Return
-  - [(string)] (str 'x좌표' 'x' 'Y좌표')
-  "
-  [start-coordinate size]
-  (leave-coordinates-by-size (first start-coordinate)
-                             (dec (+ (first start-coordinate) (first size)))
-                             (last start-coordinate)
-                             (+ (last start-coordinate) (last size))))
-
 
 (defn leave-coordinates-by-size
   "시작 부터 끝좌표 까지 거져가는 모든 좌표들 남기기
@@ -134,6 +116,23 @@
     (cond (== j end-y) footprint
           (== i end-x) (recur n start-x (inc j) (conj footprint (str i "x" j)))
           :else (recur (inc n) (inc i) j (conj footprint (str i "x" j))))))
+
+
+(defn footprint-coordinates
+  "시작좌표와 크기 좌표를 가지고 거쳐가는 모든 좌표를 가져온다
+
+  Arguments
+  - start-coordinate [(int)] 시작좌표
+  - size [(int)] 사각형 크기
+
+  Return
+  - [(string)] (str 'x좌표' 'x' 'Y좌표')
+  "
+  [start-coordinate size]
+  (leave-coordinates-by-size (first start-coordinate)
+                             (dec (+ (first start-coordinate) (first size)))
+                             (last start-coordinate)
+                             (+ (last start-coordinate) (last size))))
 
 (defn overlapped-count
   "문자열에서 좌표에 아이디를 할당해 아이디가 중첩된 좌표의 갯수를 반환
@@ -170,7 +169,7 @@
 ;; 겹치지 않는 영역을 가진 ID를 출력하시오. (문제에서 답이 하나만 나옴을 보장함)
 
 
-(defn footprint-coordinates-as-hashmap [rect-information]
+(defn footprint-coordinates-as-hashmap [{:keys [id starting-coordinate size]}]
   "사각형의 id 별로 사각형이 포함된 좌표를 반환한다.
 
   Arguments
@@ -179,12 +178,7 @@
   Return
   - (hash-map) {:id (string) :coordinates ((string) vector)} 아이디와 좌표목록을 갖는 hash-map
   "
-  (let [{id :id
-         starting-coordinate :starting-coordinate
-         size :size
-         } rect-information]
-    {:id id :coordinates (footprint-coordinates starting-coordinate size)}))
-
+  {:id id :coordinates (footprint-coordinates starting-coordinate size)})
 
 (defn compare-far-off
   "대상 사각형이 다른 사각형들과 겹치는 부분이 있는지 확인
@@ -204,6 +198,12 @@
                                        not))
                                 ) rects)]
     (empty? intersections)))
+; recommended 아래 로직 별도 함수 분리
+;(let [intersection (clojure.set/intersection (set (rect :coordinates)) (set coordinates))]
+;  (->> intersection
+;       empty?
+;       not))
+
 
 (defn remove-idx [i items]
   "list 에서 특정 인덱스에 해당하는 항목을 삭제한 list 를 반환
@@ -217,7 +217,10 @@
   "
   (keep-indexed #(when-not (= i %1) %2) items))
 
-(defn search-rect-far-off
+; recommended
+; hash-map id 로 찾아서 삭제 .
+
+(defn not-overlapped
   "겹치는 부분이 없는 사각형의 id 를 가져오는 반환
 
   Arguments
@@ -249,7 +252,7 @@
   (->> strings
        (map parse-coordinate-info)
        (map footprint-coordinates-as-hashmap)
-       search-rect-far-off
+       not-overlapped
        ))
 
 (comment
