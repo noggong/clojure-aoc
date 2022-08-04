@@ -1,6 +1,7 @@
-(ns aoc2018-2)
-(require '[clojure.string :as str])
-(require '[clojure.data :as data] )
+(ns aoc2018-2
+  (:require [clojure.string :as str]                        ; str 이라는 alias 는 지양함 / 이미 str core 함수가 존재
+            [clojure.data :as data]))
+
 ;; 파트 1
 ;; 주어진 각각의 문자열에서, 같은 문자가 두번 혹은 세번씩 나타난다면 각각을 한번씩 센다.
 ;; 두번 나타난 문자가 있는 문자열의 수 * 세번 나타난 문자가 있는 문자열의 수를 반환하시오.
@@ -45,6 +46,8 @@
        not
        ))
 
+; empty? not 의 조합을 seq 로 써서 truthy , falsy 한 값으로 확인 가능.
+
 (defn mentioned-twice-threetimes
   "char 별 언급횟수가 표현된 hash-map 에서 두번과 세번이 언급된 char 가 있는지 확인
 
@@ -71,8 +74,20 @@
   [checked-mentioned-map]
   [
    (get (frequencies (map :appeared-twice? checked-mentioned-map)) true)
-   (get (frequencies (map :appeared-three-times? checked-mentioned-map)) true)
-   ])
+   (get (frequencies (map :appeared-three-times? checked-mentioned-map)) true)])
+
+
+; recommended
+;(defn mentioned? [checked-mentioned-map key]
+;  (->> (map key checked-mentioned-map)
+;       frequencies
+;       (#(get % true))))
+;
+;(defn gather-mentioned
+;  [checked-mentioned-map]
+;  (->> [:appeared-twice? :appeared-three-times?]
+;       (map (fn [appear] (mentioned? checked-mentioned appear)))))
+
 
 (defn multiply-twice-three-times
   "문자열들에서 두번, 세번 언급된 문자의 존재 여부를 판단하여 갯수를 확인후 두번갯수 , 세번갯수를 더한다.
@@ -89,6 +104,8 @@
        (map mentioned-twice-threetimes)
        gather-mentioned
        (apply *)))
+
+
 
 (comment
   (multiply-twice-three-times `("abcdef" "bababc" "abbcde" "abcccd" "aabcdd" "abcdee" "ababab"))
@@ -166,7 +183,7 @@
     (if (str/blank? found-pair)
       (when (not-last? strings)
         (recur (rest strings)))
-        found-pair))))
+      found-pair))))
 
 (comment
   (search-pair-id `("abcde" "fghij" "klmno" "pqrst" "fguij" "axcye" "wvxyz"))
