@@ -30,12 +30,8 @@
                  :passport/pid))
 
 (s/def :passport/required? #(clojure.set/subset? required %))
-
-;- byr (Birth Year) - 4 자리 숫자; 최소 1920 & 최대 2002.
 (s/def :passport/byr (s/int-in 1920 2002))
-;- iyr (Issue Year) - 4 자리 숫자; 최소 2010 & 최대 2020.
 (s/def :passport/iyr (s/int-in 2010 2021))
-;- eyr (Expiration Year) - 4 자리 숫자; 최소 2020 & 최대 2030.
 (s/def :passport/eyr (s/int-in 2020 2031))
 (s/def :passport/hgt #(re-matches #"^[0-9]{2,3}(in|cm)$" %))
 ;(s/valid? :passport/hgt "12in")
