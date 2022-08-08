@@ -20,20 +20,29 @@
 ;- 네번째는 cid와 byr이 없다. byr은 반드시 있어야하는 필드이므로 유효하지 않다.
 
 
-(def required `(
-                 :passport/byr
-                 :passport/iyr
-                 :passport/eyr
-                 :passport/hgt
-                 :passport/hcl
-                 :passport/ecl
-                 :passport/pid))
+(def required #{:passport/byr
+                :passport/iyr
+                :passport/eyr
+                :passport/hgt
+                :passport/hcl
+                :passport/ecl
+                :passport/pid})
+
+(def hgt-inch? (fn [hgt]
+                 (->> re-matches #"^[0-9]{2}in$" hgt)
+                 println
+                 true))
+
 
 (s/def :passport/required? #(clojure.set/subset? required %))
 (s/def :passport/byr (s/int-in 1920 2002))
 (s/def :passport/iyr (s/int-in 2010 2021))
 (s/def :passport/eyr (s/int-in 2020 2031))
-(s/def :passport/hgt #(re-matches #"^[0-9]{2,3}(in|cm)$" %))
+(s/def :passport/hgt-in (s/or hgt-inch? hgt-cm))
+(s/valid? :passport/hgt "1cm")
+
+(Integer/parseInt "172")
+
 ;(s/valid? :passport/hgt "12in")
 ;- cm의 경우, 숫자는 최소 150 & 최대 193.
 ;(s/def :passport/cm의)
@@ -54,13 +63,27 @@
 
 (def cast-map (fn [[- key val]] {(keyword (str "passport" "/" key)) val}))
 
+; -recommended
+; (keyword "passport" key) = (keyword (str "passport" "/" key)
+
 (defn cast-year-int
   "년도 데이터들 int 형으로 변경"
   [passport]
-  (merge passport {
-             :passport/byr (Integer/parseInt (passport :passport/byr))
-             :passport/iyr (Integer/parseInt (passport :passport/iyr))
-             :passport/eyr (Integer/parseInt (passport :passport/eyr))}))
+  (try (merge passport {
+                        :passport/byr (Integer/parseInt (passport :passport/byr))
+                        :passport/iyr (Integer/parseInt (passport :passport/iyr))
+                        :passport/eyr (Integer/parseInt (passport :passport/eyr))})
+       (catch Exception -
+         passport)))
+
+; recommended
+;(-> passport
+;    (update :byr parseInt)
+;    (update :iyr parseInt)
+;    (update :eyr parseInt))
+; try catch 를 최대한 작게 만들기 위해 type cast 하는 부분만 함수로 분리하는것을 추천.
+; parseint 결과 유효하지 않으면 -1 / 0 / nil / :invalid 등으로 대체 해서 넣을수 있다.
+; hashmap 에 nil 을 넣는것은 지양한다.
 
 (defn input->passport
   "input string 을 여권 hash-map 으로 변경한다."
@@ -77,8 +100,7 @@
   [input]
   (->> input
        input->passport
-       (s/valid? :passport/required?)
-       ))
+       (s/valid? :passport/required?)))
 
 (keyword (str "a/" "b"))
 (defn passport-valid?
@@ -86,8 +108,7 @@
   [input]
   (->> input
        input->passport
-       (s/valid? :passport/valid?)
-       ))
+       (s/valid? :passport/valid?)))
 
 (comment
   (passport? "ecl:gry pid:860033327 eyr:2020 hcl:#fffffd byr:1937 iyr:2017 cid:147 hgt:183cm")
