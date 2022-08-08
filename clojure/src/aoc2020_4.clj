@@ -28,29 +28,17 @@
                 :passport/ecl
                 :passport/pid})
 
-(def hgt-inch? (fn [hgt]
-                 (->> re-matches #"^[0-9]{2}in$" hgt)
-                 println
-                 true))
-
-
 (s/def :passport/required? #(clojure.set/subset? required %))
 (s/def :passport/byr (s/int-in 1920 2002))
 (s/def :passport/iyr (s/int-in 2010 2021))
 (s/def :passport/eyr (s/int-in 2020 2031))
-(s/def :passport/hgt-in (s/or hgt-inch? hgt-cm))
-(s/valid? :passport/hgt "1cm")
-
-(Integer/parseInt "172")
-
-;(s/valid? :passport/hgt "12in")
-;- cm의 경우, 숫자는 최소 150 & 최대 193.
-;(s/def :passport/cm의)
-;- in의 경우, 숫자는 최소 59 & 최대 76.
-;(s/def :passport/in의)
 (s/def :passport/hcl #(re-matches #"^#[0-9a-f]{6}$" %))
 (s/def :passport/ecl #(#{:amb :blu :brn :gry :grn :hzl :oth} (keyword %)))
 (s/def :passport/pid #(re-matches #"^0[0-9]{8}$" %))
+
+(s/def :passport/hgt-cm (s/int-in 150 193))
+(s/def :passport/hgt-in (s/int-in 59 77))
+(s/def :passport/eyr (s/int-in 2020 2031))
 
 (s/def :passport/valid?
   (s/keys :req [:passport/byr
@@ -59,41 +47,51 @@
                 :passport/hgt
                 :passport/hcl
                 :passport/ecl
-                :passport/pid]))
+                :passport/pid]
+          :opt [:passport/hgg-cm
+                :passport/hgg-in]))
 
-(def cast-map (fn [[- key val]] {(keyword (str "passport" "/" key)) val}))
+(def cast-map (fn [[- key val]] {(keyword "passport" key) val}))
 
-; -recommended
-; (keyword "passport" key) = (keyword (str "passport" "/" key)
+(defn string->int
+  "문자를 숫자로 변환, 변환 할수 없다면 :invalid 로 반환"
+  [string]
+  (try (Integer/parseInt string)
+       (catch Exception -
+         :invalid)))
 
 (defn cast-year-int
   "년도 데이터들 int 형으로 변경"
   [passport]
-  (try (merge passport {
-                        :passport/byr (Integer/parseInt (passport :passport/byr))
-                        :passport/iyr (Integer/parseInt (passport :passport/iyr))
-                        :passport/eyr (Integer/parseInt (passport :passport/eyr))})
-       (catch Exception -
-         passport)))
+  (-> passport
+      (update :passport/byr string->int)
+      (update :passport/iyr string->int)
+      (update :passport/eyr string->int)))
 
-; recommended
-;(-> passport
-;    (update :byr parseInt)
-;    (update :iyr parseInt)
-;    (update :eyr parseInt))
 ; try catch 를 최대한 작게 만들기 위해 type cast 하는 부분만 함수로 분리하는것을 추천.
 ; parseint 결과 유효하지 않으면 -1 / 0 / nil / :invalid 등으로 대체 해서 넣을수 있다.
 ; hashmap 에 nil 을 넣는것은 지양한다.
+
+(defn hgt->hgt-by-type
+  "키를 in / cm 으로 입력했는지 확인해서 데이터 추가"
+  [hgt]
+  (let [[- number type] (re-matches #"([0-9^\w]+)(in|cm)" hgt)]
+    (if (nil? type)
+      :invalid
+      {(keyword "passport" (str "hgt-" type)) (Integer/parseInt number)})))
 
 (defn input->passport
   "input string 을 여권 hash-map 으로 변경한다."
   [input]
   (let [extracted (->> input
                      (re-seq #"([^\s^:]+):([^\s^]+)")
-                     (map cast-map))]
-    (->> extracted
-         (apply merge)
-         cast-year-int)))
+                     (map cast-map)
+                     (apply merge)
+                     cast-year-int)
+        hgt (extracted :passport/hgt)]
+    (if (not= hgt nil)
+      (merge extracted (hgt->hgt-by-type hgt))
+      extracted)))
 
 (defn passport?
   "여권정보가 맞는지 확인한다."
@@ -102,7 +100,6 @@
        input->passport
        (s/valid? :passport/required?)))
 
-(keyword (str "a/" "b"))
 (defn passport-valid?
   "여권정보가 맞는지 확인한다."
   [input]
