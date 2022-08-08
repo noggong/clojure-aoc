@@ -50,32 +50,23 @@
                "[1518-11-05 00:55] wakes up"
               ))
 
-(defn rearrange-input
-  "입력 데이터 Guard를 기준으로 로그로 분리
-
-  입력 : `(\"[1518-11-01 00:00] Guard #10 begins shift\"
-         \"[1518-11-01 00:05] falls asleep\"
-
-  출력 : [\"#10 begins shift,[1518-11-01 00:05] falls asleep,[1518-11-01 00:25] wakes up,[1518-11-01 00:30] falls asleep,[1518-11-01 00:55] wakes up\"
-         \"#99 begins shift,[1518-11-02 00:40] falls asleep,[1518-11-02 00:50] wakes up\"]
-  "
-  [input]
-  (let [joined-log (s/join "," input)
-        split-log (s/split joined-log #"[,]{0,1}\[[^,]+\] Guard ")]
-    (subvec split-log 1)
-    ))
+; recommended
+; seq 분리할때 partition-by 사용 (https://clojuredocs.org/clojure.core/partition-by)
 
 (defn input->log
   "입력 데이터 Guard를 기준으로 로그로 분리
 
   입력 : `(\"[1518-11-01 00:00] Guard #10 begins shift\"
          \"[1518-11-01 00:05] falls asleep\"
+   출력 : [\"#10 begins shift,[1518-11-01 00:05] falls asleep,[1518-11-01 00:25] wakes up,[1518-11-01 00:30] falls asleep,[1518-11-01 00:55] wakes up\"
+         \"#99 begins shift,[1518-11-02 00:40] falls asleep,[1518-11-02 00:50] wakes up\"]
   "
   [input]
-  (->> input
-       rearrange-input
-       ))
+  (let [joined-log (s/join "," input)
+        split-log (s/split joined-log #"[,]{0,1}\[[^,]+\] Guard ")]
+    (subvec split-log 1)))
 
+; recommended input->log 거쳐가는것이 필요없어 보임
 
 (defn even-index?
   "index 가 짝수 인지 확인"
@@ -86,6 +77,9 @@
   "index 가 홀수 인지 확인"
   [key val]
   (when (odd? key) val))
+
+; recommended
+; partition / partition-by 로 대체 할수 있음 (가급적 index 를 사용하지 않는것을 권장)
 
 (defn log->split-by-type
   "
@@ -114,7 +108,8 @@
      :sleeps sleep
      }
     ))
-
+; recommended
+; map 으로 map $({}) () / 사용 가능 / nth 를 잘 사용하지 않음
 
 (defn refine-sleep
   "입력 :
@@ -125,7 +120,7 @@
   출력 : {:guard-id \"#9\", :sleep ({:fall 5, :wake 25} {:fall 30, :wake 55} {:fall 24, :wake 29}), :sum-minute 50}
   "
   [guard-id sleeps]
-  (let [sleeps (map #(% :sleeps) sleeps)
+  (let [sleeps (map :sleeps sleeps)
         sleeps (flatten sleeps)
         sum-minute (map #(- (% :wake) (% :fall)) sleeps)]
     {
@@ -133,6 +128,10 @@
      :sleep sleeps
      :sum-minute (reduce + sum-minute)
      }))
+; recommended
+;(let [sleeps (map #(% :sleeps) sleeps) -> map :sleeps sleeps
+;        sleeps (flatten sleeps)
+; let 을 다중으로 쓰기보단 ->> 혹은 한줄로 표기하는 것을 지향
 
 (defn group-by-guard
   "가드별로 잠을 잔 시간을 group by 한다."
@@ -157,6 +156,7 @@
        (map log->split-by-type)
        (map log->sleep)
        group-by-guard))
+; naming / split-by-type 이 무엇으로 데이터가 반환될지 명확하지 않음.
 
 (defn guard->sleepyhead
   "가장 많이 잠을 잔 guard 를 가져온다
@@ -169,6 +169,8 @@
   (->> guard-log
        (sort-by :sum-minute)
        last))
+; recommend
+; naming sleepyhead?
 
 (defn guard-id->integer
   "guard-id 를 숫자로 변경한다."
@@ -176,6 +178,9 @@
   (-> guard-id
       (subs 1)
       (Integer/parseInt)))
+
+;recommended
+; 파싱단계해서 하는것을 추천
 
 (defn most-sleep
   "잠든 시간과 일어난 시간의 목록으로 가장 많이 잠들어있던 시간을 가져온다
@@ -209,6 +214,8 @@
        guard->sleepyhead
        multiply-most-minute
        ))
+; recommended
+; 함수 내부의 것을 꺼내도 된다 (경우에 따라서)
 
 ;; 파트 2
 ;; 주어진 분(minute)에 가장 많이 잠들어 있던 가드의 ID과 그 분(minute)을 곱한 값을 구하라.
@@ -227,3 +234,7 @@
        guard->sleepyhead
        multiply-sum-minute
        ))
+
+
+;recommended
+; aggregation 에서는 data 변형을 지양한다 (즉 guard-id 는 미리 cast int)
