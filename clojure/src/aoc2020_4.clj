@@ -1,5 +1,6 @@
 (ns aoc2020_4
-  (:require [clojure.spec.alpha :as s]
+  (:require [clojure.spec.alpha :as spec]
+            [clojure.string :as s]
             [clojure.set]))
 
 ;## 파트 1
@@ -20,6 +21,7 @@
 ;- 네번째는 cid와 byr이 없다. byr은 반드시 있어야하는 필드이므로 유효하지 않다.
 
 
+(def inputs (-> (slurp "resources/2020_4.txt") (s/split #"\n")))
 (def required #{:passport/byr
                 :passport/iyr
                 :passport/eyr
@@ -28,30 +30,27 @@
                 :passport/ecl
                 :passport/pid})
 
-(s/def :passport/required? #(clojure.set/subset? required %))
-(s/def :passport/byr (s/int-in 1920 2002))
-(s/def :passport/iyr (s/int-in 2010 2021))
-(s/def :passport/eyr (s/int-in 2020 2031))
-(s/def :passport/hcl #(re-matches #"^#[0-9a-f]{6}$" %))
-(s/def :passport/ecl #(#{:amb :blu :brn :gry :grn :hzl :oth} (keyword %)))
-(s/def :passport/pid #(re-matches #"^0[0-9]{8}$" %))
+(spec/def :passport/required? #(clojure.set/subset? required %))
+(spec/def :passport/byr (spec/int-in 1920 2002))
+(spec/def :passport/iyr (spec/int-in 2010 2021))
+(spec/def :passport/eyr (spec/int-in 2020 2031))
+(spec/def :passport/hcl #(re-matches #"^#[0-9a-f]{6}$" %))
+(spec/def :passport/ecl #(#{:amb :blu :brn :gry :grn :hzl :oth} (keyword %)))
+(spec/def :passport/pid #(re-matches #"^0[0-9]{8}$" %))
+(spec/def :passport/hgt-cm (spec/int-in 150 193))
+(spec/def :passport/hgt-in (spec/int-in 59 77))
+(spec/def :passport/eyr (spec/int-in 2020 2031))
 
-;recommended keyword % 미리 정제
-
-(s/def :passport/hgt-cm (s/int-in 150 193))
-(s/def :passport/hgt-in (s/int-in 59 77))
-(s/def :passport/eyr (s/int-in 2020 2031))
-
-(s/def :passport/valid?
-  (s/keys :req [:passport/byr
-                :passport/iyr
-                :passport/eyr
-                :passport/hgt
-                :passport/hcl
-                :passport/ecl
-                :passport/pid]
-          :opt [:passport/hgg-cm
-                :passport/hgg-in]))
+(spec/def :passport/valid?
+  (spec/keys :req [:passport/byr
+                   :passport/iyr
+                   :passport/eyr
+                   :passport/hgt
+                   :passport/hcl
+                   :passport/ecl
+                   :passport/pid]
+          :opt [:passport/hgt-cm
+                :passport/hgt-in]))
 
 (def cast-map (fn [[- key val]] {(keyword "passport" key) val}))
 
@@ -77,7 +76,7 @@
 (defn hgt->hgt-by-type
   "키를 in / cm 으로 입력했는지 확인해서 데이터 추가"
   [hgt]
-  (let [[- number type] (re-matches #"([0-9^\w]+)(in|cm)" hgt)]
+  (let [[_ number type] (re-matches #"([0-9^\w]+)(in|cm)" hgt)]
     (if (nil? type)
       :invalid
       {(keyword "passport" (str "hgt-" type)) (string->int number)})))
@@ -105,20 +104,18 @@
   [input]
   (->> input
        input->passport
-       (s/valid? :passport/required?)))
+       (spec/valid? :passport/required?)))
 
 (defn passport-valid?
   "여권정보가 맞는지 확인한다."
   [input]
   (->> input
        input->passport
-       (s/valid? :passport/valid?)))
+       (spec/valid? :passport/valid?)))
 
 (comment
-  (passport? "ecl:gry pid:860033327 eyr:2020 hcl:#fffffd byr:1937 iyr:2017 cid:147 hgt:183cm")
-  (passport? "iyr:2013 ecl:amb cid:350 eyr:2023 pid:028048884 hcl:#cfa07d byr:1929")
-  (passport? "hcl:#ae17e1 iyr:2013 eyr:2024 ecl:brn pid:760753108 byr:1931 hgt:179cm")
-  (passport? "hcl:#cfa07d eyr:2025 pid:166559648 iyr:2011 ecl:brn hgt:59in"))
+  inputs
+  (map #(passport? %) inputs))
 
 ;## 파트 2
 ;파트1에서는 필드의 유무만을 검사했다면, 파트2에서는 구체적인 범위가 주어진다.
@@ -134,7 +131,4 @@
 ;- cid (Country ID) - 없어도 됨.
 
 (comment
-  (passport-valid? "ecl:gry pid:060033327 eyr:2020 hcl:#fffffd byr:1937 iyr:2017 cid:147 hgt:183cm")
-  (passport-valid? "iyr:2013 ecl:amb cid:350 eyr:2023 pid:028048884 hcl:#cfa07d byr:1929")
-  (passport-valid? "hcl:#ae17e1 iyr:2013 eyr:2024 ecl:brn pid:760753108 byr:1931 hgt:179cm")
-  (passport-valid? "hcl:#cfa07d eyr:2025 pid:166559648 iyr:2011 ecl:brn hgt:59in"))
+  (map #(passport-valid? %) inputs))
