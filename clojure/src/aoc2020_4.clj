@@ -78,16 +78,21 @@
   (let [[- number type] (re-matches #"([0-9^\w]+)(in|cm)" hgt)]
     (if (nil? type)
       :invalid
-      {(keyword "passport" (str "hgt-" type)) (Integer/parseInt number)})))
+      {(keyword "passport" (str "hgt-" type)) (string->int number)})))
+
+(defn extract-passport
+  "input 정보에서 passport 정보 추출"
+  [input]
+  (->> input
+       (re-seq #"([^\s^:]+):([^\s^]+)")
+       (map cast-map)
+       (apply merge)
+       cast-year-int))
 
 (defn input->passport
   "input string 을 여권 hash-map 으로 변경한다."
   [input]
-  (let [extracted (->> input
-                     (re-seq #"([^\s^:]+):([^\s^]+)")
-                     (map cast-map)
-                     (apply merge)
-                     cast-year-int)
+  (let [extracted (extract-passport input)
         hgt (extracted :passport/hgt)]
     (if (not= hgt nil)
       (merge extracted (hgt->hgt-by-type hgt))
