@@ -1,5 +1,5 @@
 (ns aoc2020_1
-  (:require [clojure.math.combinatorics :as combo]))
+  (:require [clojure.math.combinatorics :refer [combination]]))
 
 ;;## 파트 1
 ;;더해서 2020이 되는 두 숫자의 곱을 구하시오. (두 숫자는 유일하다고 가정)
@@ -31,17 +31,21 @@
   (->> (filter equal-2020? elements)
     first))
 
+(comment
+   (->> (combination input 2)
+        find-equally-sum
+        (apply *)))
 
 (comment
   (->>
     (-> input
-        (combo/combinations 2)
+        (combinations 2)
         find-equally-sum)
     (apply *))
 
   (->>
     (-> input
-        (combo/combinations 3)
+        (combinations 3)
         find-equally-sum)
     (apply *)))
 

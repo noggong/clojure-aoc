@@ -36,6 +36,8 @@
 (s/def :passport/ecl #(#{:amb :blu :brn :gry :grn :hzl :oth} (keyword %)))
 (s/def :passport/pid #(re-matches #"^0[0-9]{8}$" %))
 
+;recommended keyword % 미리 정제
+
 (s/def :passport/hgt-cm (s/int-in 150 193))
 (s/def :passport/hgt-in (s/int-in 59 77))
 (s/def :passport/eyr (s/int-in 2020 2031))

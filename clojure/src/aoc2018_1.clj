@@ -45,8 +45,8 @@
        (map string->int)
        cycle
        (reductions +)
-       (reduce get-duplicated-item #{})
-       ))
+       (reduce get-duplicated-item #{})))
+
 
 (comment
   (find-freq "+3 +3 +4 -2 -4"))
