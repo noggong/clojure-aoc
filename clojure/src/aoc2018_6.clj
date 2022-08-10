@@ -116,9 +116,8 @@
     \"11\" 혹은 . (최소단위가 2개이상 존재시) "
   [start-coords]
   (let [{id :id distance :distance} (apply min-key :distance start-coords)
-        shortest-count (count (filter #(= distance (:distance %))  start-coords))]
+        shortest-count (get (frequencies (map :distance start-coords)) distance)]
     (if (= 1 shortest-count) id ".")))
-
 
 (def add-manhattan
   "좌표에 manhattan 정보를 넣는다.
