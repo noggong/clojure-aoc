@@ -114,7 +114,7 @@
   input:
    {:x 1, :y 1, :owner \".\"}
    `({:id \"11\", :x 1, :y 1} {:id \"16\", :x 1, :y 6})
-  output: {:x 1, :y 1, :owner \"11\"}"
+  output: {:x 1, :y 1, :owner \"11\" :sum-distance 4}"
   (fn [coord start-coords]
     (let [filled-distance (map #(assoc % :distance (manhattan-distance coord %)) start-coords)
           sum-distance (reduce + (map :distance filled-distance))
@@ -122,8 +122,9 @@
           count-by-distance (frequencies (map :distance filled-distance))
           shortest-count (count-by-distance (:distance owner-coord))]
       (if (= 1 shortest-count)
-        (assoc coord :owner (:id owner-coord) :distance-from-start-coords sum-distance)
-        (assoc coord :distance-from-start-coords sum-distance)))))
+        (assoc coord :owner (:id owner-coord) :sum-distance sum-distance)
+        (assoc coord :owner "." :sum-distance sum-distance)))))
+; recommended 함수를 두개로 쪼개기
 
 (defn fill-manhattan
   "coords 을 점유한 start-coords 에 아이디를 채워준다
@@ -172,22 +173,55 @@
     :boundary boundary
     :start-coords start-coords}))
 
-(defn board->owner-without-boundary
-  "모든 좌표에서 바운더리에 해당하는 근원지는 제외 시킨다."
-  [{:keys [all-coords start-coords]}]
-  (let [except-owner (set [(:id (apply min-key :x start-coords))
-                           (:id (apply max-key :x start-coords))
-                           (:id (apply min-key :y start-coords))
-                           (:id (apply max-key :y start-coords))
-                           "."])]
-    (->> (filter #(not (contains? except-owner (:owner %))) all-coords)
-        (map :owner))))
+(defn coords-id-including-boundary
+  "경계선을 포함하게 될 (무한으로 증식할) 진원지 아이디 가져오기
+  input :
+    `({:owner \"11\", :x 1, :y 1}
+      {:owner \"16\", :x 1, :y 6}
+      {:owner \"83\", :x 8, :y 3}
+      {:owner \"34\", :x 3, :y 4}
+      {:owner \"55\", :x 5, :y 5}
+      {:owner \"89\", :x 8, :y 9})
+    {:min-x 1, :min-y 1, :max-x 8, :max-y 9}
+  output :
+     #{\"83\" \"89\"}"
+  [all-coords {min-x :min-x min-y :min-y max-x :max-x max-y :max-y}]
+  (->> all-coords
+       (filter #(or (= min-x (:x %))
+                    (= min-y (:y %))
+                    (= max-x (:x %))
+                    (= max-y (:y %))))
+       (map :owner)
+       set))
+
+(defn board->coords-not-boundary
+  "모든 좌표에서 바운더리에 해당하는 근원지는 제외 시킨다.
+  input :
+  {
+    :boundary {:min-x 1, :min-y 1, :max-x 8, :max-y 9}
+    :start-coords `({:id \"11\", :x 1, :y 1}
+      {:id \"16\", :x 1, :y 6}
+      {:id \"83\", :x 8, :y 3}
+      {:id \"34\", :x 3, :y 4}
+      {:id \"55\", :x 5, :y 5}
+      {:id \"89\", :x 8, :y 9})
+    :all-coords `({:x 1, :y 1, :owner \"11\", :sum-distance 42}
+      {:x 1, :y 2, :owner \"11\", :sum-distance 38}
+      {:x 1, :y 3, :owner \"11\", :sum-distance 34}
+      {:x 1, :y 4, :owner \".\", :sum-distance 32}
+      {:x 1, :y 5, :owner \"16\", :sum-distance 32})"
+  [{:keys [all-coords boundary]}]
+  (let [except-owner (coords-id-including-boundary all-coords boundary)]
+    (->> all-coords
+      (filter #(not (contains? except-owner (:owner %))))
+      (filter #(not= "." (:owner %))))))
 
 (comment
   (->> sample-input
        input->coord
        coords->board
-       board->owner-without-boundary
+       board->coords-not-boundary
+       (map :owner)
        frequencies
        vals
        (apply max))
@@ -195,7 +229,8 @@
   (->> aoc-input
        input->coord
        coords->board
-       board->owner-without-boundary
+       board->coords-not-boundary
+       (map :owner)
        frequencies
        vals
        (apply max)))
@@ -203,7 +238,6 @@
 ;; 파트 2
 ;; 안전(safe) 한 지역은 근원지'들'로부터의 맨하탄거리(Manhattan distance, 격자를 상하좌우로만 움직일때의 최단 거리)의 '합'이 N 미만인 지역임.
 
-;;  ..........
 ;;  .A........
 ;;  ..........
 ;;  ...###..C.
@@ -224,19 +258,21 @@
 
 ;; N이 10000 미만인 안전한 지역의 사이즈를 구하시오.
 
+
+
 (comment
   (->> sample-input
        input->coord
        coords->board
        :all-coords
-       (map :distance-from-start-coords)
-       (filter #(< % 40))
+       (map :sum-distance)
+       (filter #(< % 32))
        count)
 
   (->> aoc-input
        input->coord
        coords->board
        :all-coords
-       (map :distance-from-start-coords)
+       (map :sum-distance)
        (filter #(< % 10000))
        count))
