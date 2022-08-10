@@ -115,7 +115,7 @@
 
 (comment
   inputs
-  (map #(passport? %) inputs))
+  (map #(vec [% (passport? %)]) inputs))
 
 ;## 파트 2
 ;파트1에서는 필드의 유무만을 검사했다면, 파트2에서는 구체적인 범위가 주어진다.
@@ -131,4 +131,4 @@
 ;- cid (Country ID) - 없어도 됨.
 
 (comment
-  (map #(passport-valid? %) inputs))
+  (map #(vec [% (passport-valid? %)]) inputs))

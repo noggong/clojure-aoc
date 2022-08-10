@@ -9,23 +9,14 @@
 (defn string->int [numberic]
   (Integer/parseInt numberic))
 
-(defn sum2 [numbers]
+(defn sum [numbers]
   (->> numbers
        split-string
        (map string->int)
-       (reduce +)))
+       #_(reduce +)))
 
 (comment
-  (sum2 "+7 -2 -5 +1"))
-
-
-(comment
-  (defn sum [numbers]
-    (reduce + (map #(Integer/parseInt %) (re-seq #"[^\s]+" numbers))))
-  (sum "+7 -2 -5 +1"))
-
-
-
+  (sum "+10 -2 -5 +1"))
 
 ;; 파트 2
 ;; 주어진 입력의 숫자를 더할 때 마다 나오는 숫자 중, 처음으로 두번 나오는 숫자를 리턴하시오.

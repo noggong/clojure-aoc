@@ -134,10 +134,10 @@
   - ((string) list)
   "
   [target ids]
-   (let [targetArr (vec target)
+  (let [targetArr (vec target)
          compared-result (->> ids
-                   (map vec)
-                   (map #(data/diff targetArr %)))]
+                              (map vec)
+                              (map #(data/diff targetArr %)))]
      (->> compared-result
           (map #(remove nil? (nth % 2))))))
 
