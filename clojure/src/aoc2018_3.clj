@@ -1,5 +1,7 @@
 (ns aoc2018_3
-  (:require [clojure.set]))
+  (:require [clojure.set]
+            [clojure.string :as s]))
+
 
 
 ;; 파트 1
@@ -23,6 +25,8 @@
 
 ;; 여기서 XX는 ID 1, 2, 3의 영역이 두번 이상 겹치는 지역.
 ;; 겹치는 지역의 갯수를 출력하시오. (위의 예시에서는 4)
+
+(def input (s/split (slurp "resources/2018_3.txt") #"\n"))
 
 (defn square-info->coordinates
   "시작 부터 끝좌표 까지 거져가는 모든 좌표들 남기기
@@ -80,11 +84,12 @@
   (->> input
        input->coordinates
        filter-overlapped-coordinates
-       count
-       ))
+       count))
+
 
 (comment
-  (overlapped-count `("#1 @ 1,3: 4x4" "#2 @ 3,1: 4x4" "#3 @ 5,5: 2x2")))
+  (overlapped-count `("#1 @ 1,3: 4x4" "#2 @ 3,1: 4x4" "#3 @ 5,5: 2x2"))
+  (overlapped-count input))
 
 ;; 파트 2
 ;; 입력대로 모든 격자를 채우고 나면, 정확히 한 ID에 해당하는 영역이 다른 어떤 영역과도 겹치지 않음
@@ -114,19 +119,13 @@
   - (Boolean)
   "
   [coordinates, rects]
-  (let [intersections (filter (fn [rect]
-                                (let [intersection (clojure.set/intersection (set (rect :coordinates)) (set coordinates))]
-                                  (->> intersection
-                                       empty?
-                                       not))
-                                ) rects)]
+  (let [intersections (filter
+                        (fn [rect]
+                          (let [intersection (clojure.set/intersection (set (rect :coordinates)) (set coordinates))]
+                            (->> intersection
+                                 empty?
+                                 not))) rects)]
     (empty? intersections)))
-; recommended 아래 로직 별도 함수 분리
-;(let [intersection (clojure.set/intersection (set (rect :coordinates)) (set coordinates))]
-;  (->> intersection
-;       empty?
-;       not))
-
 
 (defn remove-idx [i items]
   "list 에서 특정 인덱스에 해당하는 항목을 삭제한 list 를 반환
@@ -173,10 +172,11 @@
   "
   [strings]
   (->> strings
-       (map parse-coordinate-info)
-       (map footprint-coordinates-as-hashmap)
+       input->coordinates
+       (map not-overlapped)
+       #_(map footprint-coordinates-as-hashmap)))
 
-       ))
+
 
 (comment
   (rect-far-off `("#1 @ 1,3: 4x4" "#2 @ 3,1: 4x4" "#3 @ 5,5: 2x2")))

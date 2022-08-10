@@ -1,5 +1,4 @@
-(ns aoc2018_6
-  (:require [clojure.java.io :as io]))
+(ns aoc2018_6)
 
 ;; 파트 1
 ;; 입력 : 좌표의 쌍이 N개 주어짐
