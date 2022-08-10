@@ -109,28 +109,23 @@
   (+ (abs (- from-x to-x))
      (abs (- from-y to-y))))
 
-(manhattan-distance {:x 1 :y 2} {:x 5 :y 4})
-
-(def decide-owner-at-coord
-  "좌표에 owner 를 결정하여 넣는다.
+(def add-manhattan
+  "좌표에 manhattan 정보를 넣는다.
   input:
    {:x 1, :y 1, :owner \".\"}
    `({:id \"11\", :x 1, :y 1} {:id \"16\", :x 1, :y 6})
   output: {:x 1, :y 1, :owner \"11\"}"
   (fn [coord start-coords]
     (let [filled-distance (map #(assoc % :distance (manhattan-distance coord %)) start-coords)
+          sum-distance (reduce + (map :distance filled-distance))
           owner-coord (apply min-key :distance filled-distance)
           count-by-distance (frequencies (map :distance filled-distance))
           shortest-count (count-by-distance (:distance owner-coord))]
       (if (= 1 shortest-count)
-        (assoc coord :owner (:id owner-coord))
-        coord))))
+        (assoc coord :owner (:id owner-coord) :distance-from-start-coords sum-distance)
+        (assoc coord :distance-from-start-coords sum-distance)))))
 
-
-
-(decide-owner-at-coord {:x 2, :y 3, :owner "."} `({:id "11", :x 1, :y 1} {:id "16", :x 4, :y 6}))
-
-(defn fill-owner
+(defn fill-manhattan
   "coords 을 점유한 start-coords 에 아이디를 채워준다
   input:
     `({:id \"11\", :x 1, :y 1} {:id \"16\", :x 1, :y 6})
@@ -145,7 +140,7 @@
       {:x 1, :y 4, :owner \".\"})
   "
   [start-coords coords]
-  (map decide-owner-at-coord coords (repeat start-coords)))
+  (map add-manhattan coords (repeat start-coords)))
 
 (defn all-coords-on-board
   "보드가 가지고 있는 모든 좌표를 반환한다.
@@ -156,15 +151,7 @@
   "
   [boundary start-coords]
   (->> (boundary->all-coords boundary)
-       (fill-owner start-coords)))
-
-(all-coords-on-board {:min-x 1, :min-y 1, :max-x 8, :max-y 9} `({:id "11", :x 1, :y 1}
-                                                                {:id "16", :x 1, :y 6}
-                                                                {:id "83", :x 8, :y 3}
-                                                                {:id "34", :x 3, :y 4}
-                                                                {:id "55", :x 5, :y 5}
-                                                                {:id "89", :x 8, :y 9}))
-
+       (fill-manhattan start-coords)))
 
 (defn coords->board
   "좌표를 보드정보로 변경한다.
@@ -206,8 +193,12 @@
        (apply max))
 
   (->> aoc-input
-       input->coord))
-
+       input->coord
+       coords->board
+       board->owner-without-boundary
+       frequencies
+       vals
+       (apply max)))
 
 ;; 파트 2
 ;; 안전(safe) 한 지역은 근원지'들'로부터의 맨하탄거리(Manhattan distance, 격자를 상하좌우로만 움직일때의 최단 거리)의 '합'이 N 미만인 지역임.
@@ -232,3 +223,20 @@
 ;; Total distance: 5 + 6 + 4 + 2 + 3 + 10 = 30
 
 ;; N이 10000 미만인 안전한 지역의 사이즈를 구하시오.
+
+(comment
+  (->> sample-input
+       input->coord
+       coords->board
+       :all-coords
+       (map :distance-from-start-coords)
+       (filter #(< % 40))
+       count)
+
+  (->> aoc-input
+       input->coord
+       coords->board
+       :all-coords
+       (map :distance-from-start-coords)
+       (filter #(< % 10000))
+       count))
