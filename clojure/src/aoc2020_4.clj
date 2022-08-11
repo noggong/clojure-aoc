@@ -21,7 +21,10 @@
 ;- 네번째는 cid와 byr이 없다. byr은 반드시 있어야하는 필드이므로 유효하지 않다.
 
 
-(def inputs (-> (slurp "resources/2020_4.txt") (s/split #"\n")))
+(def inputs (->> (s/split (slurp "resources/2020_4.txt") #"\n\n")
+                 (map #(s/replace % #"\n" " "))))
+
+
 (def required #{:passport/byr
                 :passport/iyr
                 :passport/eyr
@@ -31,15 +34,17 @@
                 :passport/pid})
 
 (spec/def :passport/required? #(clojure.set/subset? required %))
-(spec/def :passport/byr (spec/int-in 1920 2002))
+(spec/def :passport/byr (spec/int-in 1920 2003))
 (spec/def :passport/iyr (spec/int-in 2010 2021))
 (spec/def :passport/eyr (spec/int-in 2020 2031))
 (spec/def :passport/hcl #(re-matches #"^#[0-9a-f]{6}$" %))
 (spec/def :passport/ecl #(#{:amb :blu :brn :gry :grn :hzl :oth} (keyword %)))
-(spec/def :passport/pid #(re-matches #"^0[0-9]{8}$" %))
-(spec/def :passport/hgt-cm (spec/int-in 150 193))
+(spec/def :passport/pid #(re-matches #"^[0-9]{9}$" %))
+(spec/def :passport/hgt-cm (spec/int-in 150 194))
 (spec/def :passport/hgt-in (spec/int-in 59 77))
 (spec/def :passport/eyr (spec/int-in 2020 2031))
+(clojure.set/subset? required #:passport{:hcl "#efcc98", :iyr 2011, :ecl "hzl", :eyr 2020, :hgt "174cm", :pid "589700330", :byr :invalid, :hgt-cm 174})
+
 
 (spec/def :passport/valid?
   (spec/keys :req [:passport/byr
@@ -64,10 +69,11 @@
 (defn cast-year-int
   "년도 데이터들 int 형으로 변경"
   [passport]
-  (-> passport
-      (update :passport/byr string->int)
-      (update :passport/iyr string->int)
-      (update :passport/eyr string->int)))
+  (reduce (fn [acc keyword]
+            (if (keyword passport)
+              (update acc keyword string->int)
+              acc))
+          passport [:passport/byr :passport/eyr :passport/iyr]))
 
 ; try catch 를 최대한 작게 만들기 위해 type cast 하는 부분만 함수로 분리하는것을 추천.
 ; parseint 결과 유효하지 않으면 -1 / 0 / nil / :invalid 등으로 대체 해서 넣을수 있다.
@@ -78,7 +84,7 @@
   [hgt]
   (let [[_ number type] (re-matches #"([0-9^\w]+)(in|cm)" hgt)]
     (if (nil? type)
-      :invalid
+      {:passport/hgt :invalid}
       {(keyword "passport" (str "hgt-" type)) (string->int number)})))
 
 (defn extract-passport
@@ -98,6 +104,7 @@
     (if (not= hgt nil)
       (merge extracted (hgt->hgt-by-type hgt))
       extracted)))
+(extract-passport "hcl:#efcc98 iyr:2011 ecl:hzl eyr:2020 hgt:174cm pid:589700330")
 
 (defn passport?
   "여권정보가 맞는지 확인한다."
@@ -106,6 +113,8 @@
        input->passport
        (spec/valid? :passport/required?)))
 
+
+
 (defn passport-valid?
   "여권정보가 맞는지 확인한다."
   [input]
@@ -113,9 +122,18 @@
        input->passport
        (spec/valid? :passport/valid?)))
 
+(passport-valid? "ecl:brn iyr:2010 eyr:2027 pid:379769214 cid:111 byr:1960 hcl:#cfa07d hgt:169cm")
+
 (comment
-  inputs
-  (map #(vec [% (passport? %)]) inputs))
+
+  (map #(vec [% (passport? %)]) inputs)
+  (->> (filter #(= (passport? %) true) inputs)
+       count)
+
+  (map #(vec [% (passport-valid? %)]) inputs)
+  (->> (filter #(= (passport-valid? %) true) inputs)
+       count))
+
 
 ;## 파트 2
 ;파트1에서는 필드의 유무만을 검사했다면, 파트2에서는 구체적인 범위가 주어진다.
