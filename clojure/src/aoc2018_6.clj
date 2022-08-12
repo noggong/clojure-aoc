@@ -131,14 +131,14 @@
           (assoc :owner (start-coords->owner filled-distance))
           (merge coord)))))
 
-    ;#_(let [filled-distance (map #(assoc % :distance (manhattan-distance coord %)) start-coords)
-    ;        sum-distance (reduce + (map :distance filled-distance))
-    ;        owner-coord (apply min-key :distance filled-distance)
-    ;        count-by-distance (frequencies (map :distance filled-distance))
-    ;        shortest-count (count-by-distance (:distance owner-coord))]
-    ;    (if (= 1 shortest-count)
-    ;      (assoc coord :owner (:id owner-coord) :sum-distance sum-distance)
-    ;      (assoc coord :owner "." :sum-distance sum-distance)))
+    ;(let [filled-distance (map #(assoc % :distance (manhattan-distance coord %)) start-coords)
+    ;      sum-distance (reduce + (map :distance filled-distance))
+    ;      owner-coord (apply min-key :distance filled-distance)
+    ;      count-by-distance (frequencies (map :distance filled-distance))
+    ;      shortest-count (count-by-distance (:distance owner-coord))]
+    ;  (if (= 1 shortest-count)
+    ;    (assoc coord :owner (:id owner-coord) :sum-distance sum-distance)
+    ;    (assoc coord :owner "." :sum-distance sum-distance)))))
 
 
 (add-manhattan {:x 3, :y 4} `({:id "11", :x 1, :y 1} {:id "16", :x 2, :y 5}))

@@ -39,7 +39,7 @@
 (spec/def :passport/eyr (spec/int-in 2020 2031))
 (spec/def :passport/hcl #(re-matches #"^#[0-9a-f]{6}$" %))
 (spec/def :passport/ecl #(#{:amb :blu :brn :gry :grn :hzl :oth} (keyword %)))
-(spec/def :passport/pid #(re-matches #"^[0-9]{9}$" %))
+(spec/def :passport/pid #(re-matches #"^0[0-9]{8}$" %))
 (spec/def :passport/hgt-cm (spec/int-in 150 194))
 (spec/def :passport/hgt-in (spec/int-in 59 77))
 (spec/def :passport/eyr (spec/int-in 2020 2031))
@@ -131,8 +131,8 @@
        count)
 
   (map #(vec [% (passport-valid? %)]) inputs)
-  (->> (filter #(= (passport-valid? %) true) inputs)
-       count))
+  (->> (filter #(= (passport-valid? %) true) inputs)))
+
 
 
 ;## 파트 2
