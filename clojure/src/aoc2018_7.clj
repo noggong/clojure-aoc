@@ -239,15 +239,13 @@ Step F must be finished before step E can begin.")
     {:required \"B\", :step \"E\"}
     {:required \"D\", :step \"E\"}
     {:required \"F\", :step \"E\"})"
-  [workers-count array]
+  [array]
   (let [all-steps (array->all-steps array)]
     {:all-steps all-steps
-     :possible-steps #_(array->possible-steps array all-steps) `()
      :required-steps (array->required-step array all-steps)
      :visited-steps []
-     :workers-count workers-count
      :on-process-steps []
-     :timestamp -1}))
+     :timestamp 0}))
 
 (defn arrive?
   "목적지에 도착했는지 확인 / 모든 step을 방문했으면 도착했다고 간주"
@@ -318,35 +316,36 @@ Step F must be finished before step E can begin.")
           recur))))
 
 (defn parse-input
-  [workers-count input-string]
+  [input-string]
   (->> input-string
        input-string->array
-       (array->navigation workers-count)))
+       array->navigation))
 
 
 (comment
   (->> sample-input
-       (parse-input 1)
+       parse-input
        head-for-goal
-       #_(s/join ""))
+       (s/join ""))
 
   (->> aoc-input
-       (parse-input 1)
+       parse-input
        head-for-goal
-       #_(s/join "")))
+       (s/join "")))
 
 ;part2
 ;- step 진행이 병렬로 가능 (5개)
 ;- 시간 개념 C 를 수행하는데 63초
 ;- A를 수행하는데 61
 ; iterate / take while last/ drop while first
+(def worker-count 2)
 
 (defn step->takes
   "step 의 처리 시간을 가져온다
   input : A
   output : 61"
   [step]
-  (- (int (.charAt step 0)) 4))
+  (- (int (.charAt step 0)) 64))
 
 
 
@@ -370,7 +369,7 @@ Step F must be finished before step E can begin.")
 
     ouput
     [{:id C, :take 3} {:id D :take 4}]"
-  [worker-count on-process-steps possible-steps]
+  [on-process-steps possible-steps]
   (let [new-on-process-steps (filter (fn [step] (not (zero? (:take step)))) on-process-steps)
         worker-count (- worker-count (count new-on-process-steps))
         new-process-steps (take worker-count possible-steps)]
@@ -380,20 +379,7 @@ Step F must be finished before step E can begin.")
                             (map (fn [step] {:id step :take (step->takes step)}))
                             (concat new-on-process-steps))}))
 
-(steps-start-process 2 [{:id "A", :take 0} {:id "C", :take 3}] `("D"))
-
-(defn run-in-process-steps
-  "처리중인 스텝의 시간을 1씩 깍는다.
-  input:
-  ({:id \"C\", :take 3})
-
-  output:
-  ({:id \"C\", :take 2})
-  "
-  [on-process-steps])
-
-(run-in-process-steps ({:id "C", :take 3}))
-
+;(steps-start-process 2 [{:id "A", :take 0} {:id "C", :take 3}] `("D"))
 
 (defn required-steps->possible-steps
   "스텝별 필수 처리 스텝 항목에서 이제 처리 가능한 스텝을 가져온다
@@ -468,7 +454,7 @@ Step F must be finished before step E can begin.")
     :next-steps {:A (\"B\" \"D\"), :B (\"E\"), :C (\"A\" \"F\"), :D (\"E\"), :E (), :F (\"E\")},
     :visited-steps []}
     "
-  [{:keys [all-steps timestamp possible-steps workers-count on-process-steps required-steps visited-steps] :as navigation}]
+  [{:keys [all-steps timestamp possible-steps on-process-steps required-steps visited-steps] :as navigation}]
   (if (arrive? all-steps visited-steps)
     #_(= timestamp 3)
     #_visited-steps
@@ -478,7 +464,7 @@ Step F must be finished before step E can begin.")
           {:keys [new-possible-steps new-required-steps]} (new-required-steps-with-workers finish-steps required-steps)
           new-visited-steps (concat visited-steps finish-steps)
           new-possible-steps (next-possible-steps-with-workers finish-steps possible-steps new-possible-steps)
-          {:keys [on-process-steps new-process-steps]} (steps-start-process workers-count on-process-steps new-possible-steps)]
+          {:keys [on-process-steps new-process-steps]} (steps-start-process on-process-steps new-possible-steps)]
       #_finish-steps
       #_{:finish-steps finish-steps
          :on-process-steps on-process-steps
@@ -491,17 +477,91 @@ Step F must be finished before step E can begin.")
             :required-steps new-required-steps
             :visited-steps new-visited-steps
             :on-process-steps on-process-steps
-            :timestamp (inc (:timestamp navigation)))
+            :timestamp (inc timestamp))
           recur))))
+
+(defn dec-takes-processing-steps
+  "작업중인 스텝들을 takes 를 빼주고 0에 도달한 (작업완료된) 스텝과 함께 반환한다.
+  input
+  [{:id \"A\", :take 1} {:id \"C\", :take 3}]
+
+  ouput
+  [{:id \"A\", :take 0} {:id \"C\" :take 2}]"
+  [on-process-steps]
+  (->> on-process-steps
+       (map (fn [step] (update step :take dec)))))
+
+(defn step-by-step
+  "지도 정보를 통해 출발지에서 부터 목적지 까지 간다.
+   {:all-steps (\"A\" \"B\" \"C\" \"D\" \"E\" \"F\"),
+     :possible-steps (\"C\"),
+     :goal-steps \"E\",
+     :required-steps {:A (\"C\"), :B (\"A\"), :C (), :D (\"A\"), :E (\"B\" \"D\" \"F\"), :F (\"C\")},
+     :next-steps {:A (\"B\" \"D\"), :B (\"E\"), :C (\"A\" \"F\"), :D (\"E\"), :E (), :F (\"E\")},
+     :visited-steps []}
+     "
+  [{:keys [timestamp possible-steps on-process-steps required-steps visited-steps] :as navigation}]
+  #_(-> navigation
+        (update :on-process-steps #(dec-takes-processing-steps %))
+        (update :visited-steps #(from-process-to-visited (:on-process-steps)))
+        (update :timestamp inc))
+  (let [{:keys [finish-steps on-process-steps]} (work-on-process-steps on-process-steps)
+        {:keys [new-possible-steps new-required-steps]} (new-required-steps-with-workers finish-steps required-steps)
+        new-visited-steps (concat visited-steps finish-steps)
+        new-possible-steps (next-possible-steps-with-workers finish-steps possible-steps new-possible-steps)
+        {:keys [on-process-steps new-process-steps]} (steps-start-process on-process-steps new-possible-steps)]
+    (-> navigation
+        (assoc
+          :possible-steps (remove (set new-process-steps) new-possible-steps)
+          :required-steps new-required-steps
+          :visited-steps new-visited-steps
+          :on-process-steps on-process-steps
+          :timestamp (inc timestamp)))))
+
+;1 작업을 한다.
+;2 작업이 끝났다면 on-process-steps -> visited-step으로 옮긴다.
+;3 끝난 작업은 visited-steps 에 넣는다.
+;4 끝난 작업은 on-process-steps 에서 뺀다
+;5 on-process-steps 에서 비어있는 작업자게에 작업을 할당해 준다
+
+(defn head-for-goal-with-workers-v2
+  "지도 정보를 통해 출발지에서 부터 목적지 까지 간다.
+  {:all-steps (\"A\" \"B\" \"C\" \"D\" \"E\" \"F\"),
+    :possible-steps (\"C\"),
+    :goal-steps \"E\",
+    :required-steps {:A (\"C\"), :B (\"A\"), :C (), :D (\"A\"), :E (\"B\" \"D\" \"F\"), :F (\"C\")},
+    :next-steps {:A (\"B\" \"D\"), :B (\"E\"), :C (\"A\" \"F\"), :D (\"E\"), :E (), :F (\"E\")},
+    :visited-steps []}
+    "
+  [{:keys [all-steps] :as navigation}]
+  (->> (take-while (fn [%] (println (sort (:visited-steps %))) (not= all-steps (sort (:visited-steps %))))
+              #_#(< (:timestamp %) 5)
+              (iterate #(step-by-step %) navigation)))
+  #_(take 2
+                #_#(< (:timestamp %) 5)
+                (iterate #(step-by-step %) navigation)))
+
+
+;drop-while #(arrive? all-steps (:visited-steps %))
+;(take 5 (iterate #(step-by-step %) navigation))
+;
+;(def test {:a 1})
+;(defn test-fn [test] (assoc test :a (inc (:a test))))
+;(test-fn test)
+;
+;(drop-while #(> (:a %) 5) (iterate #(test-fn %) test))
+;
+;
+;(take-while #(< % 5) (iterate (fn [number] (inc number)) 1))
 
 (comment
   (->> sample-input
-       (parse-input 2)
-       head-for-goal-with-workers
-       :timestamp)
+       parse-input
+       head-for-goal-with-workers-v2
+       #_:timestamp)
 
   (->> aoc-input
-       (parse-input 5)
+       parse-input
        head-for-goal-with-workers
        :timestamp))
 
