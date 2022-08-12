@@ -535,7 +535,6 @@ Step F must be finished before step E can begin.")
     "
   [{:keys [all-steps] :as navigation}]
   (->> (take-while (fn [%] (println (sort (:visited-steps %))) (not= all-steps (sort (:visited-steps %))))
-              #_#(< (:timestamp %) 5)
               (iterate #(step-by-step %) navigation)))
   #_(take 2
                 #_#(< (:timestamp %) 5)
