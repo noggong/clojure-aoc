@@ -252,8 +252,8 @@ Step F must be finished before step E can begin.")
     "
   [navigation]
   (first (drop-while #(or
-                        (not (empty? (:required-steps %)))
-                        (not (empty? (:on-process-steps %))))
+                        (seq (:required-steps %))
+                        (seq (:on-process-steps %)))
                      (iterate step-by-step navigation))))
 
 
