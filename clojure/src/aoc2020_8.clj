@@ -106,7 +106,7 @@
   output
   true
   "
-  [{:keys [op value] :as instruction}]
+  [{:keys [op value]}]
   (let [amount-change {:index 0 :acc 0}]
     (case op
       :acc (assoc amount-change :index 1 :acc value)
