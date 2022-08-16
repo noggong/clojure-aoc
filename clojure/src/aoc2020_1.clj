@@ -1,5 +1,6 @@
 (ns aoc2020_1
-  (:require [clojure.math.combinatorics :refer [combination]]))
+  (:require [clojure.math.combinatorics :as combo]
+            [clojure.string :as s]))
 
 ;;## 파트 1
 ;;더해서 2020이 되는 두 숫자의 곱을 구하시오. (두 숫자는 유일하다고 가정)
@@ -18,6 +19,10 @@
               675
               1456))
 
+(def aoc-input
+  (->> (s/split (slurp "resources/2020_1.txt") #"\n")
+       (map #(Integer/parseInt %))))
+
 (def equal-2020?
   "요소들의 합이 2020 인지 확인"
   (fn [numbers]
@@ -32,22 +37,13 @@
     first))
 
 (comment
-   (->> (combination input 2)
+   (->> (combo/combinations aoc-input 2)
+        find-equally-sum
+        (apply *))
+
+   (->> (combo/combinations aoc-input 3)
         find-equally-sum
         (apply *)))
-
-(comment
-  (->>
-    (-> input
-        (combinations 2)
-        find-equally-sum)
-    (apply *))
-
-  (->>
-    (-> input
-        (combinations 3)
-        find-equally-sum)
-    (apply *)))
 
 ; #_ 를 통해 함수별 주석 가능
 ; clojure.math.combinatorics / combo 집합에서 부분집합 가져오는 함수

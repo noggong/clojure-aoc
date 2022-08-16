@@ -50,6 +50,8 @@
                "[1518-11-05 00:55] wakes up"
               ))
 
+(def input (s/split (slurp "resources/2018_4.txt") #"\n"))
+
 ; recommended
 ; seq 분리할때 partition-by 사용 (https://clojuredocs.org/clojure.core/partition-by)
 
@@ -143,8 +145,8 @@
        ))
 
 (defn log->guard-sleep
-  "문자열 로그을 guard 별 잠잤던 로그로 정제한다."
-  "입력 : [\"#99 begins shift,[1518-11-02 00:40] falls asleep,[1518-11-02 00:50] wakes up\"
+  "문자열 로그을 guard 별 잠잤던 로그로 정제한다.
+  입력 : [\"#99 begins shift,[1518-11-02 00:40] falls asleep,[1518-11-02 00:50] wakes up\"
          \"#10 begins shift,[1518-11-03 00:24] falls asleep,[1518-11-03 00:29] wakes up\"
          \"#99 begins shift,[1518-11-04 00:36] falls asleep,[1518-11-04 00:46] wakes up\"
          \"#99 begins shift,[1518-11-05 00:45] falls asleep,[1518-11-05 00:55] wakes up\"]
@@ -209,10 +211,10 @@
 
 (comment
   (->> input
-       input->log
-       log->guard-sleep
-       guard->sleepyhead
-       multiply-most-minute
+       ;input->log
+       ;log->guard-sleep
+       ;guard->sleepyhead
+       ;multiply-most-minute
        ))
 ; recommended
 ; 함수 내부의 것을 꺼내도 된다 (경우에 따라서)

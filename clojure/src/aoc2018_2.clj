@@ -15,6 +15,8 @@
 ;; ababab 3개의 a, 3개의 b 지만 한 문자열에서 같은 갯수는 한번만 카운트함 -> (두번 나오는 문자열 수: 4, 세번 나오는 문자열 수: 3)
 ;; 답 : 4 * 3 = 12
 
+(def input (slurp "resources/2018_2.txt"))
+
 (defn add-count-by-char
   "문자열을 각 char로 쪼개어 char별 언급횟수를 hash-map 으로 만든다
 
@@ -43,8 +45,8 @@
   (->> counted-char-map
        (filter (fn [[k v]] (= v mentioned-count)))
        empty?
-       not
-       ))
+       not))
+
 
 ; empty? not 의 조합을 seq 로 써서 truthy , falsy 한 값으로 확인 가능.
 
@@ -108,7 +110,7 @@
 
 
 (comment
-  (multiply-twice-three-times `("abcdef" "bababc" "abbcde" "abcccd" "aabcdd" "abcdee" "ababab"))
+  (multiply-twice-three-times (str/split input #"\n")))
 
 ;; 파트 2
 ;; 여러개의 문자열 중, 같은 위치에 정확히 하나의 문자가 다른 문자열 쌍에서 같은 부분만을 리턴하시오.
@@ -122,7 +124,6 @@
 ;; wvxyz
 
 ;; 주어진 예시에서 fguij와 fghij는 같은 위치 (2번째 인덱스)에 정확히 한 문자 (u와 h)가 다름. 따라서 같은 부분인 fgij를 리턴하면 됨.
-
 (defn compare-ids
   "대상이 되는 문자열과 ids 들의 각각 id 를 비교하여 동일위치, 동일문자의 집합을 반환한다.
 
@@ -138,8 +139,9 @@
          compared-result (->> ids
                               (map vec)
                               (map #(data/diff targetArr %)))]
-     (->> compared-result
-          (map #(remove nil? (nth % 2))))))
+    (println compared-result)
+    (->> compared-result
+         (map #(remove nil? (nth % 2))))))
 
 (defn not-last?
   "문자열 배열이 마지막 문자열만 존재하는지 판단
@@ -165,7 +167,7 @@
   [compared-result]
   (->> compared-result
        (remove empty?)
-       (filter #(= (count %) 4))
+       (filter #(= (count %) 25))
        first
        str/join))
 
@@ -183,8 +185,9 @@
     (if (str/blank? found-pair)
       (when (not-last? strings)
         (recur (rest strings)))
-      found-pair))))
+      found-pair)))
 
 (comment
-  (search-pair-id `("abcde" "fghij" "klmno" "pqrst" "fguij" "axcye" "wvxyz"))
+  (str/split input #"\n")
+  (search-pair-id (str/split input #"\n"))
   (compare-ids "fghij" `("fghij" "klmno" "pqrst" "fguij" "axcye" "wvxyz")))

@@ -3,6 +3,8 @@
 ;; 주어진 입력의 모든 숫자를 더하시오.
 ;; 예) +10 -2 -5 +1 이 입력일 경우 4를 출력
 
+(def input (slurp "resources/2018_1.txt"))
+input
 (defn split-string [numbers]
   (re-seq #"[^\s]+" numbers))
 
@@ -13,10 +15,10 @@
   (->> numbers
        split-string
        (map string->int)
-       #_(reduce +)))
+       (reduce +)))
 
 (comment
-  (sum "+10 -2 -5 +1"))
+  (sum input))
 
 ;; 파트 2
 ;; 주어진 입력의 숫자를 더할 때 마다 나오는 숫자 중, 처음으로 두번 나오는 숫자를 리턴하시오.
@@ -40,4 +42,4 @@
 
 
 (comment
-  (find-freq "+3 +3 +4 -2 -4"))
+  (find-freq input))

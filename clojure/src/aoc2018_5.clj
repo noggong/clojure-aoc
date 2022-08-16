@@ -61,4 +61,3 @@
        input->removed-units
        (map length-polymer)
        (apply min)))
-
