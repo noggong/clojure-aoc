@@ -255,7 +255,8 @@ Step F must be finished before step E can begin.")
                         (seq (:required-steps %))
                         (seq (:on-process-steps %)))
                      (iterate step-by-step navigation))))
-
+;recommend
+; 지속가능한지 체크하는 함수 별도 분리 추천
 
 (comment
   ;part 1
